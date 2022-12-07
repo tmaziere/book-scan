@@ -10,6 +10,6 @@ N.B. : it is better to work in a virtual environment (venv)
 
 ## Commands
 
-- hit key `p` to previsualize pages (left and right)
+- hit key `p` to preview pages (left and right)
 - hit key `p` again to come back to video mode
-- when previsualisation is OK, hit key `s` to save both pages
+- or if preview is OK, hit key `s` to save both pages
