@@ -1,5 +1,7 @@
 # Book Scan
 
+**This piece of software is not usable (at least not useful) at this moment**
+
 ## Install
 
 N.B. : it is better to work in a virtual environment (venv)
