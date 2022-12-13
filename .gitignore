@@ -1,2 +1,4 @@
 temp/**
 !temp/*.md
+__pycache__
+utils/__pycache__
