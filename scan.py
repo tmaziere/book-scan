@@ -4,6 +4,8 @@ from PIL import Image, ImageTk
 import cv2
 import uuid
 
+from utils.analyse_image import is_blurred
+
 class MainWindow():
     def __init__(self, window, cap):
         self.window = window
@@ -43,7 +45,10 @@ class MainWindow():
             self.window.after(self.interval, self.update_image)
 
     def buffer_image(self, index):
-        self.buffer[index] = self.cap.read()[1]
+        img = self.cap.read()[1]       
+        res_is_blurred, blur_val = is_blurred(img, 100) 
+        print(res_is_blurred, blur_val)
+        self.buffer[index] = img
     
     def key_handler(self, event):
         print(event.char, event.keysym, event.keycode)
