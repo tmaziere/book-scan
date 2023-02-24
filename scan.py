@@ -4,75 +4,100 @@ from PIL import Image, ImageTk
 import cv2
 import uuid
 
-from utils.analyse_image import is_blurred
+from utils.analyse_image import is_blurred, list_ports
+
 
 class MainWindow():
-    def __init__(self, window, cap):
+    def __init__(self, window, cap_l, cap_r):
         self.window = window
         self.window.title('Book Scan')
         self.window.bind("<Key>", self.key_handler)
-        self.cap = cap
-        self.width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-        self.height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-        self.interval = 20 # Interval in ms to get the latest frame
+        self.cap = {}
+        self.cap['l'] = cap_l
+        self.cap['l'].set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        self.cap['l'].set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        self.cap['r'] = cap_r
+        self.cap['r'].set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        self.cap['r'].set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        self.width = 480
+        self.height = 640
+        self.interval = 20  # Interval in ms to get the latest frame
         # Create canvas for image
-        self.canvas1 = Canvas(self.window, width=self.width, height=self.height)
+        self.canvas1 = Canvas(
+            self.window, width=self.width, height=self.height)
         self.canvas1.grid(row=0, column=0)
-        self.canvas2 = Canvas(self.window, width=self.width, height=self.height)
+        self.canvas2 = Canvas(
+            self.window, width=self.width, height=self.height)
         self.canvas2.grid(row=0, column=1)
         self.previz_mode = False
-        self.buffer = {}
+        self.buffer = {'l': None, 'r': None}
         self.pages = []
         self.page_count = 0
         self.temp_dir_path = 'temp/'
         self.book_uniqid = None
-        
+
         self.start_new_book()
         self.window.protocol("WM_DELETE_WINDOW", self.on_closing)
         # Update image on canvas
         self.update_image()
 
     def update_image(self):
-        # Get the latest frame and convert image format
-        self.image = cv2.cvtColor(self.cap.read()[1], cv2.COLOR_BGR2RGB) # to RGB
-        self.image = Image.fromarray(self.image) # to PIL format
-        self.image = ImageTk.PhotoImage(self.image) # to ImageTk format
+        # LEFT : Get the latest frame and convert image format
+        self.image_l = cv2.cvtColor(
+            self.cap['l'].read()[1], cv2.COLOR_BGR2RGB)  # to RGB
+        self.image_l = cv2.rotate(
+            self.image_l, cv2.ROTATE_90_CLOCKWISE)  # rotate
+        self.image_l = Image.fromarray(self.image_l)  # to PIL format
+        self.image_l = ImageTk.PhotoImage(self.image_l)  # to ImageTk format
         # Update image
-        self.canvas1.create_image(0, 0, anchor=NW, image=self.image)
-        self.canvas2.create_image(0, 0, anchor=NW, image=self.image)
+        self.canvas1.create_image(0, 0, anchor=NW, image=self.image_l)
+        # RIGHT : Get the latest frame and convert image format
+        self.image_r = cv2.cvtColor(
+            self.cap['r'].read()[1], cv2.COLOR_BGR2RGB)  # to RGB
+        self.image_r = cv2.rotate(
+            self.image_r, cv2.ROTATE_90_CLOCKWISE)  # rotate
+        self.image_r = Image.fromarray(self.image_r)  # to PIL format
+        self.image_r = ImageTk.PhotoImage(self.image_r)  # to ImageTk format
+        # Update image
+        self.canvas2.create_image(0, 0, anchor=NW, image=self.image_r)
         # Repeat every 'interval' ms
         if self.previz_mode is False:
             self.window.after(self.interval, self.update_image)
 
     def buffer_image(self, index):
-        img = self.cap.read()[1]       
-        res_is_blurred, blur_val = is_blurred(img, 100) 
-        print(res_is_blurred, blur_val)
-        self.buffer[index] = img
-    
+        if index in ("l", "r"):
+            img = self.cap[index].read()[1]
+            res_is_blurred, blur_val = is_blurred(img, 100)
+            print(res_is_blurred, blur_val)
+            self.buffer[index] = img
+        else:
+            raise Exception('Unknown cap index: ', index)
+
     def key_handler(self, event):
         print(event.char, event.keysym, event.keycode)
         if event.char == 'p':
-            self.buffer_image('left')
-            self.buffer_image('right')
+            self.buffer_image('l')
+            self.buffer_image('r')
             self.previz_mode = not self.previz_mode
             if self.previz_mode is False:
                 self.update_image()
         elif event.char == 's':
             self.save_pages()
-            
+
     def save_pages(self):
-        if self.buffer['left'] is not None and self.buffer['right'] is not None:
+        if self.buffer['l'] is not None and self.buffer['r'] is not None:
             book_files_path = os.path.join(
-            self.temp_dir_path, str(self.book_uniqid))
+                self.temp_dir_path, str(self.book_uniqid))
             # left page
             self.page_count += 1
             cv2.imwrite(os.path.join(
-                    book_files_path, "page_"+str(self.page_count)+".jpg"), self.buffer['left'])
+                book_files_path, "page_"+str(self.page_count)+".jpg"), self.buffer['l'])
             # right page
             self.page_count += 1
             cv2.imwrite(os.path.join(
-                    book_files_path, "page_"+str(self.page_count)+".jpg"), self.buffer['right'])
+                book_files_path, "page_"+str(self.page_count)+".jpg"), self.buffer['r'])
+            self.previz_mode = False
+            self.update_image()
         else:
             print("No pages buffered")
 
@@ -91,10 +116,13 @@ class MainWindow():
 
     def on_closing(self):
         print('Closing...')
-        self.cap.release()
+        self.cap['l'].release()
+        self.cap['r'].release()
         self.window.destroy()
+
 
 if __name__ == "__main__":
     root = Tk()
-    MainWindow(root, cv2.VideoCapture(-1))
+    # print(list_ports()[1])
+    MainWindow(root, cv2.VideoCapture(0), cv2.VideoCapture(4))
     root.mainloop()
