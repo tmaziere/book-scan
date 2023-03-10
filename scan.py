@@ -10,7 +10,7 @@ from utils.analyse_image import is_blurred, list_ports
 class MainWindow():
     def __init__(self, window, cap_l, cap_r):
         self.window = window
-        self.window.title('Book Scan')
+        self.window.title('Book Scan - an ESAM/CCC project')
         self.window.bind("<Key>", self.key_handler)
         self.cap = {}
         self.cap['l'] = cap_l
@@ -25,10 +25,18 @@ class MainWindow():
         # Create canvas for image
         self.canvas1 = Canvas(
             self.window, width=self.width, height=self.height)
-        self.canvas1.grid(row=0, column=0)
+        self.canvas1.grid(row=0, column=0, columnspan=2, padx=15, pady=15, sticky=E)
         self.canvas2 = Canvas(
             self.window, width=self.width, height=self.height)
-        self.canvas2.grid(row=0, column=1)
+        self.canvas2.grid(row=0, column=2, columnspan=2, padx=15, pady=15, sticky=W)
+        self.but_preview = Button(self.window, text="Preview (p)", command=self.handle_preview)
+        self.but_preview.grid(row=1, column=0, rowspan=2, ipadx=10, ipady=10)
+        self.but_save = Button(self.window, text="Save (s)", command=self.save_pages)
+        self.but_save.grid(row=1, column=1, rowspan=2, ipadx=10, ipady=10)
+        self.but_save['state'] = DISABLED
+        label = Label(root, text='Use "preview" to freeze the images : if they are good for you, click "Save" to process the next pages.')
+        label.grid(row=1, column=2, columnspan=2, padx=15, pady=15, sticky=W)
+        # global attributes
         self.previz_mode = False
         self.buffer = {'l': None, 'r': None}
         self.pages = []
@@ -37,6 +45,8 @@ class MainWindow():
         self.book_uniqid = None
 
         self.start_new_book()
+        label2 = Label(root, text=f'Current book reference: {self.book_uniqid}')        
+        label2.grid(row=2, column=2, columnspan=2, padx=15, pady=15, sticky=W)
         self.window.protocol("WM_DELETE_WINDOW", self.on_closing)
         # Update image on canvas
         self.update_image()
@@ -72,15 +82,21 @@ class MainWindow():
             self.buffer[index] = img
         else:
             raise Exception('Unknown cap index: ', index)
+        
+    def handle_preview(self):
+        self.buffer_image('l')
+        self.buffer_image('r')
+        self.previz_mode = not self.previz_mode
+        if self.previz_mode is False:
+            self.but_save['state'] = DISABLED
+            self.update_image()
+        else:
+            self.but_save['state'] = NORMAL
 
     def key_handler(self, event):
         print(event.char, event.keysym, event.keycode)
         if event.char == 'p':
-            self.buffer_image('l')
-            self.buffer_image('r')
-            self.previz_mode = not self.previz_mode
-            if self.previz_mode is False:
-                self.update_image()
+            self.handle_preview()
         elif event.char == 's':
             self.save_pages()
 
@@ -98,6 +114,7 @@ class MainWindow():
                 book_files_path, "page_"+str(self.page_count)+".jpg"), self.buffer['r'])
             self.previz_mode = False
             self.update_image()
+            self.but_save['state'] = DISABLED
         else:
             print("No pages buffered")
 
