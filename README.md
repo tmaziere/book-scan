@@ -4,7 +4,7 @@
 
 ## Install
 
-N.B. : it is better to work in a virtual environment (venv). I can advise [virtualenvwrapper](https://pypi.org/project/virtualenvwrapper/) as a vevnv manager.
+N.B. : it is better (but not mandatory) to work in a virtual environment (venv). I can advise [virtualenvwrapper](https://pypi.org/project/virtualenvwrapper/) as a vevnv manager.
 
 - clone this repo
 - install dependencies : `pip install -r requirements.txt`
